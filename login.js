@@ -43,6 +43,9 @@ import os from 'os';
         page.click('button[type="submit"]') // Clique sur le premier bouton trouvé sur la page
     ]);
 
+    //  "code": "bad-credentials",
+    // https://gw.api.animationdigitalnetwork.fr/authentication/login
+
     let targetUrl = 'https://animationdigitalnetwork.com/profiles'; // Remplacez par l'URL cible
     await page.waitForFunction(
         url => location.href.startsWith(url),
