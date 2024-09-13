@@ -5,12 +5,13 @@
   "scripts": {
     "start": "node main.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "type": "module",
   "dependencies": {
     "dlproj": "file:",
     "puppeteer": "^23.3.0"
-  }
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
 }
