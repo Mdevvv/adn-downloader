@@ -170,6 +170,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
       });
     } else if (url.endsWith('playlist.m3u8?ext=.mp4')) {
       m3u8Urls = url;
+      request.continue();
     } else {
       request.continue();
     }
