@@ -1,8 +1,16 @@
 const puppeteer = require('puppeteer');
+const os = require('os');
 
 (async () => {
   const URL = `https://animationdigitalnetwork.com/video/1188-my-deer-friend-nokotan/26192-episode-1`
-  const browser = await puppeteer.launch({headless: 'shell'});
+  
+  let launchOptions = { headless: true }; // Paramètre par défaut (headless)
+
+  if (os.platform() === 'linux') {
+    launchOptions.executablePath = '/usr/bin/chromium'; 
+  }
+
+  const browser = await puppeteer.launch(launchOptions);
   const page = await browser.newPage();
   
   // Activer l'interception des requêtes
@@ -20,7 +28,7 @@ const puppeteer = require('puppeteer');
   });
   
   // Naviguer vers l'URL souhaitée
-  await page.goto(URL, { waitUntil: 'networkidle2' });
+  await page.goto(URL, { timeout: 60000, waitUntil: 'networkidle2' });
 
   // Afficher les URL des fichiers .m3u8
   console.log('Fichiers .m3u8 trouvés :');
