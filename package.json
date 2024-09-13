@@ -3,10 +3,11 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "node main.js"
+    "start": "node login.js"
   },
   "type": "module",
   "dependencies": {
+    "adn-downloader": "file:",
     "dlproj": "file:",
     "puppeteer": "^23.3.0"
   },
