@@ -22,7 +22,7 @@ function runFFmpeg(link) {
 function readFile(filePath) {
   try {
     const data = fs.readFileSync(filePath, 'utf8');
-    return data; // Retourne le contenu du fichier
+    return data; 
   } catch (err) {
     console.error('Erreur de lecture du fichier:', err);
   }
@@ -80,7 +80,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     const seconds = Math.floor(seconds_float % 60);
     const milliseconds = Math.floor((seconds_float - Math.floor(seconds_float)) * 100);
 
-    // Formater le temps dans le format '0:0:00:01.41'
+    
     return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`;
   }
 
@@ -93,30 +93,30 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
   }
 
   function replaceUnicodeSequences(text) {
-      // Utiliser une expression régulière pour trouver les séquences Unicode
+      
       const unicodePattern = /\\u([0-9a-fA-F]{4})/g;
 
       function decodeUnicode(match, p1) {
-          // Convertir la séquence Unicode en caractère UTF-8
+          
           return String.fromCharCode(parseInt(p1, 16));
       }
 
-      // Remplacer toutes les séquences Unicode par leurs caractères UTF-8
+      
       return text.replace(unicodePattern, decodeUnicode);
   }
 
   function textRefractor(curr) {
     if (curr && typeof curr.text === 'string') {
       return replaceUnicodeSequences(curr.text)
-          .replace(/\n/g, "\\N")           // Remplacer les sauts de ligne par \N
-          .replace(/<i>/g, "{\\i1}")      // Remplacer <i> par {\\i1}
-          .replace(/<\/i>/g, "{\\i0}")    // Remplacer </i> par {\\i0}
-          .replace(/<b>/g, "{\\b1}")      // Remplacer <b> par {\\b1}
-          .replace(/<\/b>/g, "{\\b0}")    // Remplacer </b> par {\\b0}
-          .replace(/<u>/g, "{\\u1}")      // Remplacer <u> par {\\u1}
-          .replace(/<\/u>/g, "{\\u0}");   // Remplacer </u> par {\\u0}
+          .replace(/\n/g, "\\N")
+          .replace(/<i>/g, "{\\i1}")
+          .replace(/<\/i>/g, "{\\i0}")
+          .replace(/<b>/g, "{\\b1}")
+          .replace(/<\/b>/g, "{\\b0}")
+          .replace(/<u>/g, "{\\u1}")
+          .replace(/<\/u>/g, "{\\u0}");
     } else {
-        return ''; // Retourne une chaîne vide si curr ou curr.text n'est pas valide
+        return '';
     }
   }
 
@@ -151,7 +151,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
   const page = await browser.newPage();
 
   await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.6613.119 Safari/537.36');
-  // Activer l'interception des requêtes
+  
   await page.setRequestInterception(true);
 
   let m3u8Urls = null;
@@ -178,16 +178,16 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     }
   });
 
-  // Naviguer vers l'URL souhaitée
+  
   await page.goto(URL, {waitUntil: 'networkidle2' });
 
-  // Récupérer la valeur exposée de `P`
+  
   const PValue = await page.evaluate(() => {
     return window.exposedValue;
   });
 
 
-  // Afficher les URL des fichiers .m3u8
+  
   console.log('m3u8 URL:', m3u8Urls);
 
   await browser.close();

@@ -1,14 +1,14 @@
 {
-  "name": "dlproj",
+  "name": "adn-downloader",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "node login.js"
+    "start": "node login2.js"
   },
   "type": "module",
   "dependencies": {
     "adn-downloader": "file:",
-    "dlproj": "file:",
+    "axios": "^1.7.7",
     "puppeteer": "^23.3.0"
   },
   "keywords": [],
