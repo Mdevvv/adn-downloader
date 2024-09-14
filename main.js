@@ -3,29 +3,19 @@ import os from 'os';
 import { exec } from 'child_process';
 import fs from 'fs';
 
-function runFFmpeg(link) {
+function runNm3u8RE(link) {
   return new Promise((resolve, reject) => {
-    exec(`ffmpeg -i "${link}" -c copy output.mkv -y`, (error, stdout, stderr) => {
+    exec(`N_m3u8DL-RE "${link}" --auto-select --live-pipe-mux --save-name output`, (error, stdout, stderr) => {
       if (error) {
-        reject(new Error(`Erreur d'exécution de FFmpeg: ${error.message}`));
+        reject(new Error(`Erreur d'exécution de Nm3u8RE: ${error.message}`));
         return;
       }
       if (stderr) {
-        console.error(`FFmpeg stderr: ${stderr}`);
+        console.error(`Nm3u8RE stderr: ${stderr}`);
       }
       resolve(stdout);
     });
   });
-}
-
-
-function readFile(filePath) {
-  try {
-    const data = fs.readFileSync(filePath, 'utf8');
-    return data; 
-  } catch (err) {
-    console.error('Erreur de lecture du fichier:', err);
-  }
 }
 
 
@@ -138,7 +128,22 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 }
 
 (async () => {
-  
+    const sessionFilePath = './sessionData.json';
+    const profileFilePath = './profileData.json';
+
+    const sessionData = JSON.parse(fs.readFileSync(sessionFilePath, 'utf8'));
+    const profileData = JSON.parse(fs.readFileSync(profileFilePath, 'utf8'));
+
+    const { accessToken, refreshToken } = sessionData;
+    const profile = {
+        "id": 1,
+        "main": true,
+        "name": `${profileData['profiles'][0]["name"]}`,
+        "avatar": `${profileData['profiles'][0]["avatar"]}`,
+        "ageCategory": null
+    };
+
+
   const URL = `https://animationdigitalnetwork.com/video/1188-my-deer-friend-nokotan/26192-episode-1`;
 
   let launchOptions = { headless: "shell", args: ['--no-sandbox', '--disable-setuid-sandbox'] }; // Paramètre par défaut (headless)
@@ -155,10 +160,16 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
   await page.setRequestInterception(true);
 
   let m3u8Urls = null;
+  let logged = false;
 
   page.on('request', async request => {
     const url = request.url();
-    if (url.includes('adn-vjs') && url.includes('.js')) {
+
+    if(logged && url === URL) {
+        logged = true;
+        request.continue();
+    }
+    else if (url.includes('adn-vjs') && url.includes('.js')) {
 
       const response = await fetch(url);
       let resp = await response.text();
@@ -170,7 +181,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         contentType: 'application/javascript',
         body: `${resp}`
       });
-    } else if (url.endsWith('playlist.m3u8?ext=.mp4')) {
+    } else if (url.includes('playlist.m3u8')) {
       m3u8Urls = url;
       request.continue();
     } else {
@@ -179,9 +190,19 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
   });
 
   
-  await page.goto(URL, {waitUntil: 'networkidle2' });
+  await page.goto(URL);
 
+  await page.evaluateOnNewDocument(({ accessToken, refreshToken, profile }) => {
+    localStorage.setItem('token', accessToken);
+    localStorage.setItem('refresh_token', refreshToken);
+    localStorage.setItem('profile', JSON.stringify(profile));
+    logged = true;
+  }, { accessToken, refreshToken, profile });
   
+
+  await page.goto(URL, {waitUntil: 'networkidle2'});
+  
+
   const PValue = await page.evaluate(() => {
     return window.exposedValue;
   });
@@ -198,7 +219,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
     if (m3u8Urls) {
       tasks.push(new Promise((resolve) => {
-        runFFmpeg(m3u8Urls);
+        runNm3u8RE(m3u8Urls);
         resolve();
       }));
 
