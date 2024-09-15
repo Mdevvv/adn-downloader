@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "node login2.js"
+    "start": "node main.js"
   },
   "type": "module",
   "dependencies": {

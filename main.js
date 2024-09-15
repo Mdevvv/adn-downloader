@@ -1,19 +1,57 @@
 import puppeteer from 'puppeteer';
 import os from 'os';
-import { exec } from 'child_process';
+import { spawn  } from 'child_process';
 import fs from 'fs';
 
 function runNm3u8RE(link) {
   return new Promise((resolve, reject) => {
-    exec(`N_m3u8DL-RE "${link}" --auto-select --live-pipe-mux --save-name output`, (error, stdout, stderr) => {
-      if (error) {
-        reject(new Error(`Erreur d'exécution de Nm3u8RE: ${error.message}`));
-        return;
+    const process = spawn('N_m3u8DL-RE', [link, '--auto-select', '--live-pipe-mux', '--save-name', 'output']);
+
+    process.stdout.on('data', (data) => {
+      console.log(`Nm3u8RE stdout: ${data}`);
+    });
+
+    process.stderr.on('data', (data) => {
+      console.error(`Nm3u8RE stderr: ${data}`);
+    });
+
+    process.on('error', (error) => {
+      reject(new Error(`Error from Nm3u8RE: ${error.message}`));
+    });
+
+    process.on('close', (code) => {
+      if (code === 0) {
+        resolve('Video Download Successful.');
+      } else {
+        reject(new Error(`Nm3u8RE exited with exit code: ${code}`));
       }
-      if (stderr) {
-        console.error(`Nm3u8RE stderr: ${stderr}`);
+    });
+  });
+}
+
+
+function runFFmpegVF(inputFile) {
+  return new Promise((resolve, reject) => {
+    const process = spawn('ffmpeg', ['-i', inputFile, '-c:a', 'copy', '-vn', 'output.aac']);
+
+    process.stdout.on('data', (data) => {
+      console.log(`ffmpeg stdout: ${data}`);
+    });
+
+    process.stderr.on('data', (data) => {
+      console.error(`ffmpeg stderr: ${data}`);
+    });
+
+    process.on('error', (error) => {
+      reject(new Error(`Error from ffmpeg: ${error.message}`));
+    });
+
+    process.on('close', (code) => {
+      if (code === 0) {
+        resolve(`Audio successfully extracted to : ${outputFile}`);
+      } else {
+        reject(new Error(`ffmpeg exited with exit code: ${code}`));
       }
-      resolve(stdout);
     });
   });
 }
@@ -128,6 +166,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
   }
 }
 
+
+
 (async () => {
     const sessionFilePath = './sessionData.json';
     const profileFilePath = './profileData.json';
@@ -145,7 +185,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     };
 
 
-  const URL = `https://animationdigitalnetwork.com/video/1188-my-deer-friend-nokotan/26192-episode-1`;
+  const URL = `https://animationdigitalnetwork.com/video/1068-btooom/23081-episode-1`;
 
   let launchOptions = { headless: "shell", args: ['--no-sandbox', '--disable-setuid-sandbox'] }; // Paramètre par défaut (headless)
 
@@ -203,35 +243,38 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
   await page.goto(URL, {waitUntil: 'networkidle2'});
   
-
   const PValue = await page.evaluate(() => {
     return window.exposedValue;
   });
 
-
-  
   console.log('m3u8 URL:', m3u8Urls);
 
   await browser.close();
-  
+
   try {
     
     const tasks = [];
 
     if (m3u8Urls) {
-      tasks.push(new Promise((resolve) => {
-        runNm3u8RE(m3u8Urls);
-        resolve();
-      }));
-
-
+      if(false) {
+          // tasks.push(new Promise((resolve) => {
+          //   runNm3u8RE(m3u8Urls.replace("audioindex=1", "audioindex=0"));
+          //   runFFmpegVF(m3u8Urls.replace("audioindex=0", "audioindex=1"));
+          //   resolve();
+          // }));
+      } else {
+        // tasks.push(new Promise((resolve) => {
+        //   runNm3u8RE(m3u8Urls);
+        //   resolve();
+        // }));
+      }
     }
     if(m3u8Urls && PValue) {
-      tasks.push(new Promise((resolve) => {
-        convertToAss(PValue);
-        resolve();
-      }));
-      await Promise.all(tasks);
+      // tasks.push(new Promise((resolve) => {
+      //   convertToAss(PValue);
+      //   resolve();
+      // }));
+      // await Promise.all(tasks);
     }
   } catch (err) {
     console.error('Rip error:', err.message);
