@@ -241,6 +241,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
   const isVF = infoJsonData["video"]["languages"].length > 1;
 
+  console.log('Is Video Format: ', isVF);
+
   if (os.platform() === 'linux') {
     launchOptions.executablePath = '/usr/bin/chromium';
     Nm3u8RE = "n-m3u8dl-re";
@@ -264,7 +266,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         request.continue();
     }
     else if (url.includes('adn-vjs') && url.includes('.js')) {
-
+      console.log('including load:', url);
       const response = await fetch(url);
       let resp = await response.text();
       resp = resp.replace("P[this.trackIndex]=JSON.parse(r)||{}", "P[this.trackIndex]=JSON.parse(r)||{}; window.exposedValue = P[this.trackIndex];");
@@ -301,14 +303,14 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
   });
 
   console.log('m3u8 URL:', m3u8Urls);
-
+  console.log('PValue:', PValue);
   await browser.close();
 
   try {
     
     const tasks = [];
 
-    if (m3u8Urls) {
+    if (m3u8Urls && false) {
       if(isVF) {
           tasks.push(new Promise((resolve) => {
             runNm3u8RE(m3u8Urls.replace("playlist.m3u8?", "playlist.m3u8?audioindex=0&"));
