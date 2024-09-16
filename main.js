@@ -2,10 +2,27 @@ import puppeteer from 'puppeteer';
 import os from 'os';
 import { spawn  } from 'child_process';
 import fs from 'fs';
+import readline from 'readline';
+import axios from 'axios';
 
-function runNm3u8RE(link) {
+let Nm3u8RE = "N_m3u8DL-RE";
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
+
+function input(question) {
+  return new Promise((resolve) => {
+    rl.question(question, (reponse) => {
+      resolve(reponse);
+    });
+  });
+}
+
+function runNm3u8RE(link, outputFile = 'output') {
   return new Promise((resolve, reject) => {
-    const process = spawn('N_m3u8DL-RE', [link, '--auto-select', '--live-pipe-mux', '--save-name', 'output']);
+    const process = spawn(Nm3u8RE, [link, '--auto-select', '--live-pipe-mux', '--save-name', outputFile]);
 
     process.stdout.on('data', (data) => {
       console.log(`Nm3u8RE stdout: ${data}`);
@@ -30,9 +47,9 @@ function runNm3u8RE(link) {
 }
 
 
-function runFFmpegVF(inputFile) {
+function runFFmpegVF(inputFile, outputFile = 'output.aac') {
   return new Promise((resolve, reject) => {
-    const process = spawn('ffmpeg', ['-i', inputFile, '-c:a', 'copy', '-vn', 'output.aac']);
+    const process = spawn('ffmpeg', ['-i', inputFile, '-c:a', 'copy', '-vn', outputFile + '.aac']);
 
     process.stdout.on('data', (data) => {
       console.log(`ffmpeg stdout: ${data}`);
@@ -184,13 +201,49 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         "ageCategory": null
     };
 
+  
+  
+  const infoURL = 'https://gw.api.animationdigitalnetwork.fr/video/'
+  const URL = 'https://animationdigitalnetwork.com';
+  const url = await input('url : ');
+  
+  rl.close();
 
-  const URL = `https://animationdigitalnetwork.com/video/1068-btooom/23081-episode-1`;
+  const regex = /\/video\/(\d+)-(?:[^\/]+)\/(\d+)-/;
+
+  const match = url.match(regex);
+  let workId = ''
+  let episodeId = ''
+  if (match && match[1] && match[2]) {
+    workId = match[1];
+    episodeId = match[2];
+    console.log('Work ID:', workId);
+    console.log('Episode ID:', episodeId);
+  } else {
+    console.log('No IDs found');
+  }
+
+  const loginHeaders = {
+    'Content-Type': 'application/json',
+    'X-Target-Distribution': 'fr',
+    'X-I18n-Platform': '1',
+    'Origin': URL,
+    'Referer': URL,
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.112 Safari/537.36',
+    'Accept': 'application/json'
+  };
+
+  const infoResponce = await axios.get(infoURL+episodeId,{ headers: loginHeaders })
+
+  const infoJsonData = infoResponce.data;
 
   let launchOptions = { headless: "shell", args: ['--no-sandbox', '--disable-setuid-sandbox'] }; // Paramètre par défaut (headless)
 
+  const isVF = infoJsonData["video"]["languages"].length > 1;
+
   if (os.platform() === 'linux') {
-    launchOptions.executablePath = '/usr/bin/chromium'; 
+    launchOptions.executablePath = '/usr/bin/chromium';
+    Nm3u8RE = "n-m3u8dl-re";
   }
 
   const browser = await puppeteer.launch(launchOptions);
@@ -206,7 +259,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
   page.on('request', async request => {
     const url = request.url();
 
-    if(logged && url === URL) {
+    if(logged && url === url) {
         logged = true;
         request.continue();
     }
@@ -231,7 +284,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
   });
 
   
-  await page.goto(URL);
+  await page.goto(url);
 
   await page.evaluateOnNewDocument(({ accessToken, refreshToken, profile }) => {
     localStorage.setItem('token', accessToken);
@@ -241,7 +294,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
   }, { accessToken, refreshToken, profile });
   
 
-  await page.goto(URL, {waitUntil: 'networkidle2'});
+  await page.goto(url, {waitUntil: 'networkidle2'});
   
   const PValue = await page.evaluate(() => {
     return window.exposedValue;
@@ -256,26 +309,31 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     const tasks = [];
 
     if (m3u8Urls) {
-      if(false) {
-          // tasks.push(new Promise((resolve) => {
-          //   runNm3u8RE(m3u8Urls.replace("audioindex=1", "audioindex=0"));
-          //   runFFmpegVF(m3u8Urls.replace("audioindex=0", "audioindex=1"));
-          //   resolve();
-          // }));
+      if(isVF) {
+          tasks.push(new Promise((resolve) => {
+            runNm3u8RE(m3u8Urls.replace("playlist.m3u8?", "playlist.m3u8?audioindex=0&"));
+            resolve();
+          }));
+
+          tasks.push(new Promise((resolve) => {
+            runFFmpegVF(m3u8Urls.replace("playlist.m3u8?", "playlist.m3u8?audioindex=1&"), "output.vf");
+            resolve();
+          }));
       } else {
-        // tasks.push(new Promise((resolve) => {
-        //   runNm3u8RE(m3u8Urls);
-        //   resolve();
-        // }));
+        tasks.push(new Promise((resolve) => {
+          runNm3u8RE(m3u8Urls);
+          resolve();
+        }));
       }
     }
     if(m3u8Urls && PValue) {
-      // tasks.push(new Promise((resolve) => {
-      //   convertToAss(PValue);
-      //   resolve();
-      // }));
-      // await Promise.all(tasks);
+      console.log('Converting to ASS...');
+      tasks.push(new Promise((resolve) => {
+        convertToAss(PValue);
+        resolve();
+      }));
     }
+    await Promise.all(tasks);
   } catch (err) {
     console.error('Rip error:', err.message);
   }  
