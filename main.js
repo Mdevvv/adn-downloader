@@ -237,11 +237,21 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
   const infoJsonData = infoResponce.data;
 
-  let launchOptions = { headless: "shell", args: ['--no-sandbox', '--disable-setuid-sandbox'] }; // Paramètre par défaut (headless)
+  
+  const languages = infoJsonData["video"]["languages"].map(item => item.toLowerCase());
+  
+  const isVF = languages.includes("vf") || languages.includes("french");
+  const isVostFR = languages.includes("vostfr");
+  
+  let season = '01'
+  if(infoJsonData["video"].hasOwnProperty("season") && infoJsonData["video"]["season"] != null) {
+    season = infoJsonData["video"]["season"].padStart(2, '0');
+  }
 
-  const isVF = infoJsonData["video"]["languages"].length > 1;
+  const fileName = infoJsonData["video"]["show"]["title"].normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/'/g, '.').replaceAll(" ", ".").replaceAll("..",".") + ".S"+ season + "E"+ infoJsonData["video"]["shortNumber"].padStart(2, '0');
+  console.log(fileName);
 
-  console.log('Is Video Format: ', isVF);
+  let launchOptions = { headless: false/**"shell"**/, args: ['--no-sandbox', '--disable-setuid-sandbox'] }; // Paramètre par défaut (headless)
 
   if (os.platform() === 'linux') {
     launchOptions.executablePath = '/usr/bin/chromium';
@@ -258,10 +268,6 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
   let m3u8Urls = null;
   let logged = false;
 
-  page.on('console', msg => {
-    console.log('PAGE LOG:', msg.text());
-  });
-
   page.on('request', async request => {
     const url = request.url();
 
@@ -269,11 +275,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         logged = true;
         request.continue();
     }
-    else if (url.includes('adn-vjs') && url.includes('.js')) {
+    else if (isVostFR && url.includes('adn-vjs') && url.includes('.js')) {
       console.log('including load:', url);
       const response = await fetch(url);
       let resp = await response.text();
-      resp = resp.replace("P[this.trackIndex]=JSON.parse(r)||{}", "P[this.trackIndex]=JSON.parse(r)||{}; window.exposedValue = P[this.trackIndex]; console.log(window.exposedValue);");
+      resp = resp.replace("P[this.trackIndex]=JSON.parse(r)||{}", "P[this.trackIndex]=JSON.parse(r)||{}; window.exposedValue = P[this.trackIndex];");
         
 
       request.respond({
@@ -302,20 +308,22 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
   await page.goto(url, {waitUntil: 'networkidle2'});
   
-  const PValue = await page.evaluate(() => {
-    return window.exposedValue;
-  });
+  let PValue = undefined;
+  if(isVostFR) {
+    PValue = await page.evaluate(() => {return window.exposedValue;});
+    await page.waitForFunction(() => typeof window.exposedValue !== 'undefined');
+  }
 
   console.log('m3u8 URL:', m3u8Urls);
-  console.log('PValue:', PValue);
+
   await browser.close();
 
   try {
     
     const tasks = [];
 
-    if (m3u8Urls && false) {
-      if(isVF) {
+    if (m3u8Urls) {
+      if(isVF && isVostFR) {
           tasks.push(new Promise((resolve) => {
             runNm3u8RE(m3u8Urls.replace("playlist.m3u8?", "playlist.m3u8?audioindex=0&"));
             resolve();
@@ -332,7 +340,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         }));
       }
     }
-    if(m3u8Urls && PValue) {
+    if(isVostFR) {
       console.log('Converting to ASS...');
       tasks.push(new Promise((resolve) => {
         convertToAss(PValue);
