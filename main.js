@@ -258,6 +258,10 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
   let m3u8Urls = null;
   let logged = false;
 
+  page.on('console', msg => {
+    console.log('PAGE LOG:', msg.text());
+  });
+
   page.on('request', async request => {
     const url = request.url();
 
@@ -269,7 +273,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
       console.log('including load:', url);
       const response = await fetch(url);
       let resp = await response.text();
-      resp = resp.replace("P[this.trackIndex]=JSON.parse(r)||{}", "P[this.trackIndex]=JSON.parse(r)||{}; window.exposedValue = P[this.trackIndex];");
+      resp = resp.replace("P[this.trackIndex]=JSON.parse(r)||{}", "P[this.trackIndex]=JSON.parse(r)||{}; window.exposedValue = P[this.trackIndex]; console.log(window.exposedValue);");
         
 
       request.respond({
