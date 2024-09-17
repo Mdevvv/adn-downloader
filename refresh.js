@@ -1,4 +1,3 @@
-import axios from 'axios';
 import fs from 'fs';
 
 // Fonction pour rafraîchir le token
