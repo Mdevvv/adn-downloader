@@ -3,7 +3,6 @@ import os from 'os';
 import { spawn  } from 'child_process';
 import fs from 'fs';
 import readline from 'readline';
-import axios from 'axios';
 
 let Nm3u8RE = "N_m3u8DL-RE";
 const vfFilename = 'output.vf.aac'
@@ -186,10 +185,10 @@ function getMediaInfo(filePath) {
             videoInfo
           });
         } catch (error) {
-          reject(new Error('Erreur lors de la lecture des informations vidéo.'));
+          reject(new Error('Error when reading video information.'));
         }
       } else {
-        reject(new Error(`ffprobe a échoué avec le code ${code}: ${errorOutput}`));
+        reject(new Error(`ffprobe failed with code ${code}: ${errorOutput}`));
       }
     });
   });
@@ -209,11 +208,12 @@ function muxFiles(fileName, isVF, isVostFR, forced/*, title, episodeName, episod
   const mainVinfo = mainInfo.videoInfo.streams[0];
   let args = ["-i", voFilename];
 
-  if (isVF) {
-    args.push("-i", vfFilename); 
-  }
+  
 
   if (isVostFR) {
+    if (isVF) {
+      args.push("-i", vfFilename); 
+    }
       args.push("-i", assFile); 
   }
 
@@ -221,19 +221,19 @@ function muxFiles(fileName, isVF, isVostFR, forced/*, title, episodeName, episod
       if(forced) {
         args.push("-i", assFileForced);
         args.push("-map", "0", "-map", "1:a:?", "-map", "2:s:?", "-map", "3:s:?");
-        args.push("-metadata:s:a:0", "language=ja", "-metadata:s:a:1", "language=fre", "-metadata:s:s:0", "language=fre", "-metadata:s:s:0", "title='FR Subs'", "-metadata:s:s:1", "language=fre", "-metadata:s:s:1", 'title="FR Forced"');
+        args.push("-metadata:s:a:0", "language=ja", "-metadata:s:a:1", "language=fre", "-metadata:s:s:0", "language=fre", "-metadata:s:s:0", "title=FR Subs", "-metadata:s:s:1", "language=fre", "-metadata:s:s:1", 'title=FR Forced');
         args.push("-c", "copy");
       } else {
         args.push("-map", "0", "-map", "1:a:?", "-map", "2:s:?");
-        args.push('-metadata:s:a:0', "language=ja", "-metadata:s:a:1", "language=fre", "-metadata:s:s:0", "language=fre", "-metadata:s:s:0", 'title="FR Subs"');
+        args.push('-metadata:s:a:0', "language=ja", "-metadata:s:a:1", "language=fre", "-metadata:s:s:0", "language=fre", "-metadata:s:s:0", 'title=FR Subs', "-disposition:s:0", "default");
         args.push("-c", "copy");
       }
   } else if (isVostFR) {
       args.push("-map", "0", "-map", "1:s:?");
-      args.push("-metadata:s:a:0", "language=ja", "-metadata:s:s:0", "language=fre", "-metadata:s:s:0", 'title="FR Subs"');
+      args.push("-metadata:s:a:0", "language=ja", "-metadata:s:s:0", "language=fre", "-metadata:s:s:0", 'title=FR Subs', "-disposition:s:0", "default");
       args.push("-c", 'copy');
   } else {
-      args.push("-metadata:s:a:0", "language=fre")
+      rgs.push("-metadata:s:a:0", "language=fre")
       args.push("-c", "copy");
   }
   // for (const [key, value] of Object.entries(metadata)) {
@@ -241,9 +241,27 @@ function muxFiles(fileName, isVF, isVostFR, forced/*, title, episodeName, episod
   // }
 
   args.push(`${fileName}.${mainVinfo.height}p.WEB.${mainVinfo.codec_name}.mkv`);
-  runCommand("ffmpeg", args);
-
+  args.push("-y")
+  await runCommand("ffmpeg", args);
+  cleanup();
   })();
+}
+
+function cleanup() {
+  const files = [voFilename, vfFilename, assFile, assFileForced];
+  files.forEach(element => {
+    fs.access(element, fs.constants.F_OK, (err) => {
+      if (!err) {
+          fs.unlink(element, (err) => {
+              if (err) {
+                  console.error(element,'Error deleting file:', err);
+              } else {
+                  console.log(element, 'The file has been successfully deleted.');
+              }
+          });
+      }
+    });
+  });
 }
 
 (async () => {
@@ -291,9 +309,9 @@ function muxFiles(fileName, isVF, isVostFR, forced/*, title, episodeName, episod
     'Accept': 'application/json'
   };
 
-  const infoResponce = await axios.get(infoURL+episodeId,{ headers: loginHeaders })
-
-  const infoJsonData = infoResponce.data;
+  // const infoResponce = await axios.get(infoURL+episodeId,{ headers: loginHeaders })
+  const infoResponse = await fetch(infoURL+episodeId, { "headers": loginHeaders, "method": "GET" })
+  const infoJsonData = await infoResponse.json();
 
   
   const languages = infoJsonData["video"]["languages"].map(item => item.toLowerCase());
@@ -330,7 +348,7 @@ function muxFiles(fileName, isVF, isVostFR, forced/*, title, episodeName, episod
   
   await page.setRequestInterception(true);
 
-  let m3u8Urls = null;
+  let m3u8Urls = "";
   let logged = false;
 
   page.on('request', async request => {
@@ -361,7 +379,7 @@ function muxFiles(fileName, isVF, isVostFR, forced/*, title, episodeName, episod
   });
 
   
-  await page.goto(url);
+  await page.goto(URL+"/login", { waitUntil: 'domcontentloaded' });
 
   await page.evaluateOnNewDocument(({ accessToken, refreshToken, profile }) => {
     localStorage.setItem('token', accessToken);
@@ -381,6 +399,12 @@ function muxFiles(fileName, isVF, isVostFR, forced/*, title, episodeName, episod
 
   console.log('m3u8 URL:', m3u8Urls);
 
+  if(m3u8Urls.startsWith('https://free')) {
+    isVF = false;
+    isVostFR = true;
+    forced = false;
+  }
+
   await browser.close();
 
   try {
@@ -390,9 +414,9 @@ function muxFiles(fileName, isVF, isVostFR, forced/*, title, episodeName, episod
     if (m3u8Urls) {
       if (isVF && isVostFR) {
         tasks.push(runCommand(Nm3u8RE, [m3u8Urls.replace("playlist.m3u8?", "playlist.m3u8?audioindex=0&"), '--auto-select', '--live-pipe-mux', '--save-name', voFilename.replace(".mp4", "")]));
-        tasks.push(runCommand('ffmpeg', ['-i', m3u8Urls.replace("playlist.m3u8?", "playlist.m3u8?audioindex=1&"), '-c', 'copy', '-vn', vfFilename]));
+        tasks.push(runCommand('ffmpeg', ['-i', m3u8Urls.replace("playlist.m3u8?", "playlist.m3u8?audioindex=1&"), '-c', 'copy', '-vn', vfFilename, '-y']));
       } else {
-        tasks.push(runCommand(Nm3u8RE, [m3u8Urls, '--auto-select', '--live-pipe-mux', '--save-name', voFilename]));
+        tasks.push(runCommand(Nm3u8RE, [m3u8Urls, '--auto-select', '--live-pipe-mux', '--save-name', voFilename.replace(".mp4", "")]));
       }
     }
     if(PValue != undefined) {

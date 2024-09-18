@@ -1,5 +1,3 @@
-
-import axios from 'axios';
 import readline from 'readline';
 import fs from 'fs';
 
@@ -39,29 +37,39 @@ async function loggingAndProfile() {
         'Accept': 'application/json'
     };
 
-    try {
-        const loginResponse = await axios.post(loginUrl, loginBody, { headers: loginHeaders });
-        const { accessToken, refreshToken } = loginResponse.data;
+    const loginResponse = await fetch(loginUrl, {
+        "headers" : loginHeaders,
+        "body": JSON.stringify(loginBody),
+        "method" : 'POST'
+    });
 
-        fs.writeFileSync('./sessionData.json', JSON.stringify({ accessToken, refreshToken }));
-        console.log('Connection successful and tokens saved.');
+    // const loginResponse = await axios.post(loginUrl, loginBody, { headers: loginHeaders });
+    const data = await loginResponse.json();
+    const accessToken = data.accessToken;
+    const refreshToken = data.refreshToken; 
 
-        const profileResponse = await axios.get(profileUrl, {
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'X-Target-Distribution': 'fr',
-                'X-I18n-Platform': '1',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.112 Safari/537.36',
-                'Accept': 'application/json'
-            }
-        });
 
-        fs.writeFileSync('./profileData.json', JSON.stringify(profileResponse.data));
-        console.log('Profile retrieved and saved.');
+    fs.writeFileSync('./sessionData.json', JSON.stringify({ accessToken, refreshToken }));
+    console.log('Connection successful and tokens saved.');
 
-    } catch (error) {
-        console.error('Error during connection or profile retrieval: ', error.response ? error.response.data : error.message);
-    }
+    const profileHeader = {
+        'Authorization': `Bearer ${accessToken}`,
+        'X-Target-Distribution': 'fr',
+        'X-I18n-Platform': '1',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.112 Safari/537.36',
+        'Accept': 'application/json'
+    };
+
+    const profileResponse = await fetch(profileUrl, {
+        "headers" : profileHeader,
+        "method" : 'GET'
+        
+    })
+    const profiledata = await profileResponse.json();
+
+    fs.writeFileSync('./profileData.json', JSON.stringify(profiledata));
+    console.log('Profile retrieved and saved.');
+
 }
 
 loggingAndProfile();
