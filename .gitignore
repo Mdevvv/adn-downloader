@@ -21,3 +21,5 @@ N_m3u8DL*.exe
 
 /log*
 /Log*
+
+/requirements.sh
