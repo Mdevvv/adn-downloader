@@ -34,7 +34,7 @@ A tool for downloading videos from Animation Digital Network (ADN) using a premi
 
 ### Windows Users
 
-1. Ensure you have Windows installed.
+1. Ensure you have chrome installed.
 
 2. Download the latest release for Windows from the [releases page](https://github.com/your-repo/releases).
 
