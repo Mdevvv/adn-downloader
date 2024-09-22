@@ -5,7 +5,9 @@ import fs from 'fs';
 import readline from 'readline';
 import { execSync }  from 'child_process';
 
-let Nm3u8RE = "N_m3u8DL-RE";
+let Nm3u8RE = "./N_m3u8DL-RE.exe";
+let ffmpeg = "ffmpeg";
+let ffprobe = "ffprobe";
 const vfFilename = 'output.vf.aac'
 const voFilename = 'output.mp4'
 const assFile = 'output.ass'
@@ -195,7 +197,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
 function getMediaInfo(filePath) {
   return new Promise((resolve, reject) => {
-    const ffprobe = spawn('ffprobe', [
+    const ffprobeResult = spawn(ffprobe, [
       '-v', 'error', // Masque les messages d'erreur
       '-select_streams', 'v:0', // Sélectionne le premier flux vidéo
       '-show_entries', 'stream=codec_name,bit_rate,width,height', // Récupère l'encodeur et le bitrate
@@ -206,15 +208,15 @@ function getMediaInfo(filePath) {
     let output = '';
     let errorOutput = '';
 
-    ffprobe.stdout.on('data', (data) => {
+    ffprobeResult.stdout.on('data', (data) => {
       output += data;
     });
 
-    ffprobe.stderr.on('data', (data) => {
+    ffprobeResult.stderr.on('data', (data) => {
       errorOutput += data;
     });
 
-    ffprobe.on('close', (code) => {
+    ffprobeResult.on('close', (code) => {
       if (code === 0) {
         try {
           const videoInfo = JSON.parse(output);
@@ -279,7 +281,7 @@ function muxFiles(fileName, isVF, isVostFR, forced/*, title, episodeName, episod
 
   args.push(`${fileName}.${mainVinfo.height}p.WEB.${mainVinfo.codec_name}.mkv`);
   args.push("-y")
-  await runCommand("ffmpeg", args);
+  await runCommand(ffmpeg, args);
   cleanup();
   })();
 }
@@ -376,6 +378,10 @@ function cleanup() {
     launchOptions.executablePath = '/usr/bin/chromium';
     Nm3u8RE = "n-m3u8dl-re";
   }
+  else if(os.platform() === 'win32') {
+    ffmpeg = "./ffmpeg.exe";
+    ffprobe = "./ffprobe.exe";
+  }
 
   const browser = await puppeteer.launch(launchOptions);
   const page = await browser.newPage();
@@ -450,7 +456,7 @@ function cleanup() {
     if (m3u8Urls) {
       if (isVF && isVostFR) {
         tasks.push(runCommand(Nm3u8RE, [m3u8Urls.replace("playlist.m3u8?", "playlist.m3u8?audioindex=0&"), '--auto-select', '--live-pipe-mux', '--save-name', voFilename.replace(".mp4", "")]));
-        tasks.push(runCommand('ffmpeg', ['-i', m3u8Urls.replace("playlist.m3u8?", "playlist.m3u8?audioindex=1&"), '-c', 'copy', '-vn', vfFilename, '-y']));
+        tasks.push(runCommand(ffmpeg, ['-i', m3u8Urls.replace("playlist.m3u8?", "playlist.m3u8?audioindex=1&"), '-c', 'copy', '-vn', vfFilename, '-y']));
       } else {
         tasks.push(runCommand(Nm3u8RE, [m3u8Urls, '--auto-select', '--live-pipe-mux', '--save-name', voFilename.replace(".mp4", "")]));
       }

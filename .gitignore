@@ -14,3 +14,10 @@ test*
 
 sessionData.json
 profileData.json
+
+ffmpeg.exe
+ffprobe.exe
+N_m3u8DL*.exe
+
+/log*
+/Log*
