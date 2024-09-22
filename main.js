@@ -34,6 +34,16 @@ if (!fs.existsSync(sessionFilePath) || !fs.existsSync(profileFilePath)) {
       const sessionData = fs.readFileSync(sessionFilePath, 'utf8');
       if (sessionData === "{}") {
           console.error("Error: Bad login.");
+          fs.unlink(sessionFilePath, (err) => {
+            if (err) {
+                console.error(sessionFilePath,'Error deleting file:', err);
+            }});
+
+            fs.unlink(profileFilePath, (err) => {
+              if (err) {
+                  console.error(profileFilePath,'Error deleting file:', err);
+              }});
+
           process.exit(1);
       }
   }
