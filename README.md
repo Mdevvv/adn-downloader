@@ -36,7 +36,7 @@ A tool for downloading videos from Animation Digital Network (ADN) using a premi
 
 1. Ensure you have chrome installed.
 
-2. Download the latest release for Windows from the [releases page](https://github.com/your-repo/releases).
+2. Download the latest release for Windows from the [releases page](https://github.com/Mdevvv/adn-downloader/releases).
 
 3. After downloading, proceed to install Puppeteer using npm:
    
@@ -46,7 +46,7 @@ A tool for downloading videos from Animation Digital Network (ADN) using a premi
 
 ### Arch Linux Users
 
-1. Download the appropriate release.
+1. Download the release for ArchLinux from the [releases page](https://github.com/Mdevvv/adn-downloader/releases).
 
 2. Execute the `requirements.sh` script:
    
