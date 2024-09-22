@@ -2,6 +2,8 @@
 
 A tool for downloading videos from Animation Digital Network (ADN) using a premium account. This software allows you to obtain videos in the best possible quality with multiple audio tracks and subtitles if available.
 
+<img src="https://i.imgur.com/PVNS7QU.gif" title="" alt="exemple" width="400">
+
 ## Table of Contents
 
 - [Features](#features)
@@ -50,7 +52,7 @@ A tool for downloading videos from Animation Digital Network (ADN) using a premi
    
    ```
    chmod +x requirements.sh
-    
+   
    ./requirements.sh
    ```
 
