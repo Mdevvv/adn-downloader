@@ -3,6 +3,7 @@ import os from 'os';
 import { spawn  } from 'child_process';
 import fs from 'fs';
 import readline from 'readline';
+import { execSync }  from 'child_process';
 
 let Nm3u8RE = "N_m3u8DL-RE";
 const vfFilename = 'output.vf.aac'
@@ -10,7 +11,33 @@ const voFilename = 'output.mp4'
 const assFile = 'output.ass'
 const assFileForced = 'output.forced.ass'
 
+const sessionFilePath = './sessionData.json';
+const profileFilePath = './profileData.json';
 
+if (!fs.existsSync(sessionFilePath) || !fs.existsSync(profileFilePath)) {
+  execSync('node login2.js', { stdio: 'inherit' });
+
+  const sessionData = fs.readFileSync(sessionFilePath, 'utf8');
+  if (sessionData === "{}") {
+      console.error("Error: Bad login.");
+      process.exit(1);
+  }
+} else {
+  try {
+      execSync('node refresh.js', { stdio: 'inherit' });
+  } catch (error) {
+      console.log("");
+      console.log("");
+      console.error("Error during refresh:", error.message);
+      execSync('node login2.js', { stdio: 'inherit' });
+
+      const sessionData = fs.readFileSync(sessionFilePath, 'utf8');
+      if (sessionData === "{}") {
+          console.error("Error: Bad login.");
+          process.exit(1);
+      }
+  }
+}
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -265,8 +292,7 @@ function cleanup() {
 }
 
 (async () => {
-    const sessionFilePath = './sessionData.json';
-    const profileFilePath = './profileData.json';
+    
 
     const sessionData = JSON.parse(fs.readFileSync(sessionFilePath, 'utf8'));
     const profileData = JSON.parse(fs.readFileSync(profileFilePath, 'utf8'));

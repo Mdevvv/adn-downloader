@@ -66,7 +66,8 @@ async function refreshToken() {
         }));
         console.log("and saved")
     } else {
-        console.error('Erreur lors du rafraîchissement du token:', response.status, response.statusText);
+        console.error('token error:', response.status, response.statusText);
+        throw new Error("Refresh token failed.");
     }
 }
 
