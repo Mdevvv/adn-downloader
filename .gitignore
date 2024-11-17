@@ -19,7 +19,9 @@ ffmpeg.exe
 ffprobe.exe
 N_m3u8DL*.exe
 N_m3u8DL*
+mkvmerge.exe
 /log*
 /Log*
+
 
 /requirements.sh

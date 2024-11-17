@@ -9,6 +9,7 @@ import { execSync }  from 'child_process';
 let Nm3u8RE = "./N_m3u8DL-RE.exe";
 let ffmpeg = "ffmpeg";
 let ffprobe = "ffprobe";
+let mkvmerge = "mkvmerge";
 const vfFilename = 'output.vf.aac'
 const voFilename = 'output.mp4'
 const assFile = 'output.ass'
@@ -234,7 +235,7 @@ function getMediaInfo(filePath) {
   });
 }
 
-function muxFiles(fileName, isVF, isVostFR, forced/*, title, episodeName, episode, season*/) {
+function muxFiles(fileName, isVF, isVostFR, forced/*, title, episodeName, episode, season*/, teamTag) {
   (async () => {
 
   console.log("mux...")
@@ -280,17 +281,20 @@ function muxFiles(fileName, isVF, isVostFR, forced/*, title, episodeName, episod
   //     args.push(`-metadata ${key}="${value}"`);
   // }
 
-  if(teamTag && teamTag != "" && !teamTag.startsWith("-"))
+
+  if(teamTag != "" && !teamTag.startsWith("-"))
     teamTag = "-" + teamTag;
-  args.push(`${fileName}.${mainVinfo.height}p.WEB.${mainVinfo.codec_name}${teamTag}.mkv`);
+  args.push(`output.mkv`);
   args.push("-y")
   await runCommand(ffmpeg, args);
+  await runCommand(mkvmerge, ["output.mkv", "-o", `${fileName}.${mainVinfo.height}p.WEB.${mainVinfo.codec_name}${teamTag}.mkv`])
+
   cleanup();
   })();
 }
 
 function cleanup() {
-  const files = [voFilename, vfFilename, assFile, assFileForced];
+  const files = [voFilename, vfFilename, assFile, assFileForced, "output.mkv"];
   files.forEach(element => {
     fs.access(element, fs.constants.F_OK, (err) => {
       if (!err) {
@@ -306,7 +310,7 @@ function cleanup() {
   });
 }
 
-export default async function adnRip(epID = null, platID = null,  outputName = null, teamTag = "") {
+export default async function adnRip(epID = null, platID = null,  outputName = null, inputTeamTag = "") {
     
 
     const sessionData = JSON.parse(fs.readFileSync(sessionFilePath, 'utf8'));
@@ -385,7 +389,7 @@ export default async function adnRip(epID = null, platID = null,  outputName = n
     fileName = title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/'/g, '.').replaceAll(" ", ".").replaceAll("..",".") + ".S"+ season.padStart(2, '0') + "E"+ episode.padStart(2, '0');
   console.log(fileName);
 
-  let launchOptions = { headless: false, args: ['--no-sandbox', '--disable-setuid-sandbox'] }; // Paramètre par défaut (headless)
+  let launchOptions = { headless: "shell", args: ['--no-sandbox', '--disable-setuid-sandbox'] }; // Paramètre par défaut (headless)
 
   if (os.platform() === 'linux') {
     launchOptions.executablePath = '/usr/bin/chromium';
@@ -394,6 +398,7 @@ export default async function adnRip(epID = null, platID = null,  outputName = n
   else if(os.platform() === 'win32') {
     ffmpeg = "./ffmpeg.exe";
     ffprobe = "./ffprobe.exe";
+    mkvmerge = "./mkvmerge.exe"
   }
 
   const browser = await puppeteer.launch(launchOptions);
@@ -416,7 +421,8 @@ export default async function adnRip(epID = null, platID = null,  outputName = n
     else if (isVostFR && url.includes('adn-vjs') && url.includes('.js')) {
       console.log('including load:', url);
       const response = await fetch(url);
-      let resp = await response.text();
+      // let resp = await response.text();
+      let resp = await fs.readFileSync("./loader.js", "utf-8");
       resp = resp.replace("_0x59f2b0[this[_0x2751('0x7a')]]=JSON[_0x2751('0xbc')](_0x387eb9)||{}", "_0x59f2b0[this[_0x2751('0x7a')]] = JSON[_0x2751('0xbc')](_0x387eb9) || {}; window.exposedValue = _0x59f2b0[this[_0x2751('0x7a')]];");
 
 
@@ -495,7 +501,7 @@ export default async function adnRip(epID = null, platID = null,  outputName = n
 
     await Promise.all(tasks);
 
-    await muxFiles(fileName, isVF, isVostFR, forced);
+    await muxFiles(fileName, isVF, isVostFR, forced, inputTeamTag);
   } catch (err) {
     console.error('Rip error:', err.message);
   }
