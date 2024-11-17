@@ -53,14 +53,16 @@ if (!fs.existsSync(sessionFilePath) || !fs.existsSync(profileFilePath)) {
   }
 }
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
-
 function input(question) {
+
+  let rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
   return new Promise((resolve) => {
     rl.question(question, (reponse) => {
+      rl.close();
       resolve(reponse);
     });
   });
@@ -249,13 +251,18 @@ function muxFiles(fileName, isVF, isVostFR, forced/*, title, episodeName, episod
   const mainVinfo = mainInfo.videoInfo.streams[0];
   let args = ["-i", voFilename];
 
-  
+  let typeOfLanguage = "VO";
 
   if (isVostFR) {
     if (isVF) {
       args.push("-i", vfFilename); 
+      typeOfLanguage = "MULTI";
+    }
+    else {
+      typeOfLanguage = "SUBFRENCH";
     }
       args.push("-i", assFile); 
+      
   }
 
   if (isVostFR && isVF) {
@@ -287,7 +294,7 @@ function muxFiles(fileName, isVF, isVostFR, forced/*, title, episodeName, episod
   args.push(`output.mkv`);
   args.push("-y")
   await runCommand(ffmpeg, args);
-  await runCommand(mkvmerge, ["output.mkv", "-o", `${fileName}.${mainVinfo.height}p.WEB.${mainVinfo.codec_name}${teamTag}.mkv`])
+  await runCommand(mkvmerge, ["output.mkv", "-o", `${fileName}.${typeOfLanguage}.${mainVinfo.height}p.WEB.${mainVinfo.codec_name}${teamTag}.mkv`])
 
   cleanup();
   })();
@@ -475,7 +482,7 @@ export default async function adnRip(epID = null, platID = null,  outputName = n
     if (m3u8Urls) {
       if (isVF && isVostFR) {
         tasks.push(runCommand(Nm3u8RE, [m3u8Urls.replace("playlist.m3u8?", "playlist.m3u8?audioindex=0&"), '--auto-select', '--live-pipe-mux', '--save-name', voFilename.replace(".mp4", "")]));
-        tasks.push(runCommand(ffmpeg, ['-i', m3u8Urls.replace("playlist.m3u8?", "playlist.m3u8?audioindex=1&"), '-c', 'copy', '-vn', vfFilename, '-y']));
+        tasks.push(runCommand(ffmpeg, ['-i', m3u8Urls.replace("playlist.m3u8?", "playlist.m3u8?audioindex=1&"), '-c', 'copy', '-vn', '-map', '0:5', vfFilename, '-y']));
       } else {
         tasks.push(runCommand(Nm3u8RE, [m3u8Urls, '--auto-select', '--live-pipe-mux', '--save-name', voFilename.replace(".mp4", "")]));
       }
@@ -506,6 +513,3 @@ export default async function adnRip(epID = null, platID = null,  outputName = n
     console.error('Rip error:', err.message);
   }
 }
-
-
-adnRip()
