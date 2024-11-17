@@ -5,6 +5,7 @@ import fs from 'fs';
 import readline from 'readline';
 import { execSync }  from 'child_process';
 
+
 let Nm3u8RE = "./N_m3u8DL-RE.exe";
 let ffmpeg = "ffmpeg";
 let ffprobe = "ffprobe";
@@ -279,7 +280,9 @@ function muxFiles(fileName, isVF, isVostFR, forced/*, title, episodeName, episod
   //     args.push(`-metadata ${key}="${value}"`);
   // }
 
-  args.push(`${fileName}.${mainVinfo.height}p.WEB.${mainVinfo.codec_name}.mkv`);
+  if(teamTag && teamTag != "" && !teamTag.startsWith("-"))
+    teamTag = "-" + teamTag;
+  args.push(`${fileName}.${mainVinfo.height}p.WEB.${mainVinfo.codec_name}${teamTag}.mkv`);
   args.push("-y")
   await runCommand(ffmpeg, args);
   cleanup();
@@ -303,7 +306,7 @@ function cleanup() {
   });
 }
 
-(async () => {
+export default async function adnRip(epID = null, platID = null,  outputName = null, teamTag = "") {
     
 
     const sessionData = JSON.parse(fs.readFileSync(sessionFilePath, 'utf8'));
@@ -320,23 +323,32 @@ function cleanup() {
 
   const infoURL = 'https://gw.api.animationdigitalnetwork.fr/video/'
   const URL = 'https://animationdigitalnetwork.com';
-  const url = await input('url : ');
-  rl.close();
-
-  const regex = /\/video\/(\d+)-(?:[^\/]+)\/(\d+)-/;
-
-  const match = url.match(regex);
-  let workId = ''
   let episodeId = ''
-  if (match && match[1] && match[2]) {
-    workId = match[1];
-    episodeId = match[2];
-    console.log('Work ID:', workId);
-    console.log('Episode ID:', episodeId);
-  } else {
-    console.log('No IDs found');
+  let url = ''
+  let workId = "" 
+  if(epID == null) {
+    url = await input('url : ');
+    rl.close();
+  
+    const regex = /\/video\/(\d+)-(?:[^\/]+)\/(\d+)-/;
+  
+    const match = url.match(regex);
+    if (match && match[1] && match[2]) {
+      workId = match[1];
+      episodeId = match[2];
+      console.log('Work ID:', workId);
+      console.log('Episode ID:', episodeId);
+    } else {
+      console.log('No IDs found');
+    }
+  
+  } 
+  else {
+    workId = platID;
+    episodeId = epID;
+    url = `https://animationdigitalnetwork.com/video/${workId}/${episodeId}`
   }
-
+  
   const loginHeaders = {
     'Content-Type': 'application/json',
     'X-Target-Distribution': 'fr',
@@ -368,15 +380,16 @@ function cleanup() {
   const title = infoJsonData["video"]["show"]["title"];
   const episode = infoJsonData["video"]["shortNumber"];
   const episodeName = infoJsonData["video"]["title"];
-
-  const fileName = title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/'/g, '.').replaceAll(" ", ".").replaceAll("..",".") + ".S"+ season.padStart(2, '0') + "E"+ episode.padStart(2, '0');
+  let fileName = outputName;
+  if(outputName == null)
+    fileName = title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/'/g, '.').replaceAll(" ", ".").replaceAll("..",".") + ".S"+ season.padStart(2, '0') + "E"+ episode.padStart(2, '0');
   console.log(fileName);
 
-  let launchOptions = { headless: "shell", args: ['--no-sandbox', '--disable-setuid-sandbox'] }; // Paramètre par défaut (headless)
+  let launchOptions = { headless: false, args: ['--no-sandbox', '--disable-setuid-sandbox'] }; // Paramètre par défaut (headless)
 
   if (os.platform() === 'linux') {
     launchOptions.executablePath = '/usr/bin/chromium';
-    Nm3u8RE = "n-m3u8dl-re";
+    Nm3u8RE = "./N_m3u8DL-RE";
   }
   else if(os.platform() === 'win32') {
     ffmpeg = "./ffmpeg.exe";
@@ -404,8 +417,8 @@ function cleanup() {
       console.log('including load:', url);
       const response = await fetch(url);
       let resp = await response.text();
-      resp = resp.replace("P[this.trackIndex]=JSON.parse(r)||{}", "P[this.trackIndex]=JSON.parse(r)||{}; window.exposedValue = P[this.trackIndex];");
-        
+      resp = resp.replace("_0x59f2b0[this[_0x2751('0x7a')]]=JSON[_0x2751('0xbc')](_0x387eb9)||{}", "_0x59f2b0[this[_0x2751('0x7a')]] = JSON[_0x2751('0xbc')](_0x387eb9) || {}; window.exposedValue = _0x59f2b0[this[_0x2751('0x7a')]];");
+
 
       request.respond({
         status: 200,
@@ -486,4 +499,7 @@ function cleanup() {
   } catch (err) {
     console.error('Rip error:', err.message);
   }
-})();
+}
+
+
+adnRip()
