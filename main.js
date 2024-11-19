@@ -281,7 +281,7 @@ function muxFiles(fileName, isVF, isVostFR, forced/*, title, episodeName, episod
       args.push("-metadata:s:a:0", "language=ja", "-metadata:s:s:0", "language=fre", "-metadata:s:s:0", 'title=FR Subs', "-disposition:s:0", "default");
       args.push("-c", 'copy');
   } else {
-      rgs.push("-metadata:s:a:0", "language=fre")
+      args.push("-metadata:s:a:0", "language=fre")
       args.push("-c", "copy");
   }
   // for (const [key, value] of Object.entries(metadata)) {
@@ -396,7 +396,7 @@ export default async function adnRip(epID = null, platID = null,  outputName = n
     fileName = title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/'/g, '.').replaceAll(" ", ".").replaceAll("..",".") + ".S"+ season.padStart(2, '0') + "E"+ episode.padStart(2, '0');
   console.log(fileName);
 
-  let launchOptions = { headless: "shell", args: ['--no-sandbox', '--disable-setuid-sandbox'] }; // Paramètre par défaut (headless)
+  let launchOptions = { headless: false, args: ['--no-sandbox', '--disable-setuid-sandbox'] }; // Paramètre par défaut (headless)
 
   if (os.platform() === 'linux') {
     launchOptions.executablePath = '/usr/bin/chromium';
