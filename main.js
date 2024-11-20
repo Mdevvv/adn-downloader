@@ -430,6 +430,7 @@ export default async function adnRip(epID = null, platID = null,  outputName = n
       const response = await fetch(url);
       // let resp = await response.text();
       let resp = await fs.readFileSync("./loader.js", "utf-8");
+      resp =  await Buffer.from(resp, 'base64').toString('utf-8');
       resp = resp.replace("_0x59f2b0[this[_0x2751('0x7a')]]=JSON[_0x2751('0xbc')](_0x387eb9)||{}", "_0x59f2b0[this[_0x2751('0x7a')]] = JSON[_0x2751('0xbc')](_0x387eb9) || {}; window.exposedValue = _0x59f2b0[this[_0x2751('0x7a')]];");
 
 
